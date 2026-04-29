@@ -1,0 +1,43 @@
+const { SlashCommandBuilder, EmbedBuilder, ChannelType } = require('discord.js');
+
+module.exports = {
+  data: new SlashCommandBuilder()
+    .setName('say')
+    .setDescription('Send messages or embeds to a channel')
+    .addChannelOption(option =>
+      option.setName('channel')
+        .setDescription('Target channel')
+        .addChannelTypes(ChannelType.GuildText)
+        .setRequired(true))
+    .addStringOption(option =>
+      option.setName('content')
+        .setDescription('Message/Embed parts separated by "/"')
+        .setRequired(true)),
+
+  async execute(interaction) {
+    const channel = interaction.options.getChannel('channel');
+    const content = interaction.options.getString('content');
+
+    const parts = content.split('/');
+
+    for (const part of parts) {
+      const trimmed = part.trim();
+
+      try {
+        // Try parsing as JSON → embed
+        const json = JSON.parse(trimmed);
+
+        const embed = new EmbedBuilder(json);
+        await channel.send({ embeds: [embed] });
+
+      } catch (err) {
+        // Not JSON → send as plain message
+        if (trimmed.length > 0) {
+          await channel.send({ content: trimmed });
+        }
+      }
+    }
+
+    await interaction.reply({ content: 'Done.', ephemeral: true });
+  }
+};
